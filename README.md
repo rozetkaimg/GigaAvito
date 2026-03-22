@@ -50,7 +50,7 @@
 ## 🛠 Технологический стек
 
 *   **UI:** Jetpack Compose, Material 3.
-*   **Архитектура:** MVVM, Clean Architecture (Data/Domain/Presentation).
+*   **Архитектура:** MVVM.
 *   **DI:** Koin.
 *   **Database:** Room + Paging 3.
 *   **Network:** Ktor, OkHttp 4.
