@@ -50,13 +50,13 @@
 ## 🛠 Технологический стек
 
 *   **UI:** Jetpack Compose, Material 3.
-*   **Архитектура:** MVVM, Clean Architecture (Data/Domain/Presentation).
+*   **Архитектура:** MVVM.
 *   **DI:** Koin.
 *   **Database:** Room + Paging 3.
-*   **Network:** Retrofit 2, OkHttp 4.
+*   **Network:** Ktor, OkHttp 4.
 *   **Async:** Kotlin Coroutines & Flow.
 *   **Images:** Coil 3.
-*   **Backend:** Firebase (Auth, Storage).
+*   **Backend:** Firebase (Auth).
 
 ---
 
