@@ -110,7 +110,7 @@ private fun shareImageFromCache(context: Context, data: Any, scope: CoroutineSco
         val result = context.imageLoader.execute(request)
         if (result is SuccessResult) {
             val bitmap = result.image.toBitmap()
-            val uri = withContext(Dispatchers.IO) {
+            val uri = withContext(Dispatchers.Default) {
                 try {
                     val cachePath = File(context.cacheDir, "images")
                     cachePath.mkdirs()

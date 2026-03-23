@@ -42,10 +42,10 @@ fun ChatInputBar(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            val canSend = (messageText.isNotBlank() || hasAttachment) && !isLoading
+            val canSend = messageText.isNotBlank() || hasAttachment
 
             Button(
-                onClick = { if (canSend) onSend() },
+                onClick = onSend,
                 enabled = canSend || isLoading,
                 shape = CircleShape,
                 modifier = Modifier.size(52.dp),

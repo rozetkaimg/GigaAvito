@@ -7,11 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.rozetka.gigaavito.data.local.*
 import com.rozetka.gigaavito.data.remote.GigaChatRepository
 import com.rozetka.gigaavito.domain.ChatGenerationManager
+import com.rozetka.gigaavito.utils.getGigaImageFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -81,9 +81,17 @@ class ChatViewModel(
         _uiState.update { it.copy(attachedImageUri = uri) }
     }
 
+    fun sendMessageWithContext(text: String, uri: Uri?, context: Context) {
+        val bytes = uri?.let { currentUri ->
+            runCatching {
+                context.contentResolver.openInputStream(currentUri)?.use { it.readBytes() }
+            }.getOrNull()
+        }
+        sendMessage(text, bytes)
+    }
+
     fun sendMessage(text: String, imageBytes: ByteArray? = null) {
-        if (text.isBlank() && imageBytes == null) return
-        if (chatGenerationManager.isAnyChatGenerating.value) return
+        if ((text.isBlank() && imageBytes == null) || chatGenerationManager.isAnyChatGenerating.value) return
 
         val model = _uiState.value.selectedModel
         val attachedUri = _uiState.value.attachedImageUri
@@ -131,7 +139,7 @@ class ChatViewModel(
     }
 
     suspend fun downloadImage(fileId: String, context: Context): ByteArray? {
-        val file = File(context.filesDir, "giga_$fileId.jpg")
+        val file = getGigaImageFile(context, fileId)
         if (file.exists()) return file.readBytes()
 
         return gigaChatRepository.downloadImage(fileId)?.also {

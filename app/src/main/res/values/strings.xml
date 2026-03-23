@@ -60,4 +60,16 @@
     <string name="login_or_divider">OR</string>
     <string name="btn_google_login">Sign in with Google</string>
     <string name="error_login_failed">Login failed</string>
+    <string name="error_empty_fields">Empty fields</string>
+    <string name="error_unknown_account">Unknown account type</string>
+    <string name="default_web_client_id">_</string>
+    <string name="mime_type_image">image/*</string>
+    <string name="nav_arg_chat_id">chatId</string>
+    <string name="nav_new_chat">new</string>
+    <string name="uri_scheme_content">content://</string>
+    <string name="avatar_prefix">avatar_</string>
+    <string name="image_extension">.jpg</string>
+    <integer name="nav_anim_duration">300</integer>
+    <integer name="min_password_length">6</integer>
+    <integer name="default_tokens">1250</integer>
 </resources>

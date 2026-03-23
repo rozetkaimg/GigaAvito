@@ -1,3 +1,4 @@
+
 package com.rozetka.gigaavito.screens.profile
 
 import android.net.Uri
@@ -48,6 +49,7 @@ fun ProfileScreen(
     val displayName = userName ?: stringResource(R.string.default_name)
     var editableName by remember(displayName) { mutableStateOf(displayName) }
 
+    val mimeTypeImage = stringResource(R.string.mime_type_image)
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -87,7 +89,7 @@ fun ProfileScreen(
                     .size(140.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .clickable(enabled = isEditing) { photoPickerLauncher.launch("image/*") },
+                    .clickable(enabled = isEditing) { photoPickerLauncher.launch(mimeTypeImage) },
                 contentAlignment = Alignment.Center
             ) {
                 if (photoUrl != null) {

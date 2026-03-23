@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rozetka.gigaavito.R
-import com.rozetka.gigaavito.utils.generateColorFromHash
+import com.rozetka.gigaavito.utils.colorHash
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -49,7 +48,7 @@ fun ChatListItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val mainColor = generateColorFromHash(title)
+
 
     val typingText = stringResource(R.string.typing)
     val photoText = stringResource(R.string.images_title)
@@ -99,14 +98,14 @@ fun ChatListItem(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(mainColor.copy(alpha = 0.15f)),
+                    .background(title.colorHash.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = null,
                     modifier = Modifier.size(26.dp),
-                    tint = mainColor
+                    tint = title.colorHash
                 )
             }
 

@@ -92,7 +92,7 @@ fun ChatSettingsBottomSheet(
                             modifier = Modifier.clickable { onModelSelect(model) },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
-                        if (index < models.size - 1) {
+                        if (index == model.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)

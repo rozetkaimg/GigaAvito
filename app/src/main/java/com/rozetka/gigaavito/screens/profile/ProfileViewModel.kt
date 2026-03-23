@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.rozetka.gigaavito.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -20,7 +21,8 @@ class ProfileViewModel(
     val userPhone = MutableStateFlow(auth.currentUser?.phoneNumber)
     val userPhotoUrl = MutableStateFlow(auth.currentUser?.photoUrl)
 
-    private val _tokensCount = MutableStateFlow(1250)
+    private val _tokensCount =
+        MutableStateFlow(application.resources.getInteger(R.integer.default_tokens))
     val tokensCount: StateFlow<Int> = _tokensCount
 
     fun logout(onSuccess: () -> Unit) {
@@ -31,14 +33,15 @@ class ProfileViewModel(
     fun updateProfile(newName: String, newPhotoUri: Uri? = null) {
         val user = auth.currentUser
         var finalUri = newPhotoUri
+        val contentScheme = getApplication<Application>().getString(R.string.uri_scheme_content)
 
-        if (newPhotoUri != null && newPhotoUri.toString().contains("content://")) {
+        if (newPhotoUri != null && newPhotoUri.toString().contains(contentScheme)) {
             finalUri = saveImageToCache(newPhotoUri)
         }
 
         val profileUpdates = UserProfileChangeRequest.Builder().apply {
-            setDisplayName(newName)
-            finalUri?.let { setPhotoUri(it) }
+            displayName = newName
+            finalUri?.let { photoUri = it }
         }.build()
 
         user?.updateProfile(profileUpdates)?.addOnCompleteListener { task ->
@@ -50,19 +53,18 @@ class ProfileViewModel(
     }
 
     private fun saveImageToCache(uri: Uri): Uri? {
-        return try {
+        return runCatching {
             val context = getApplication<Application>()
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val file = File(context.cacheDir, "avatar_${System.currentTimeMillis()}.jpg")
-            val outputStream = FileOutputStream(file)
-            inputStream?.use { input ->
-                outputStream.use { output ->
+            val prefix = context.getString(R.string.avatar_prefix)
+            val extension = context.getString(R.string.image_extension)
+            val file = File(context.cacheDir, "$prefix${System.currentTimeMillis()}$extension")
+
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(file).use { output ->
                     input.copyTo(output)
                 }
             }
             Uri.fromFile(file)
-        } catch (e: Exception) {
-            null
-        }
+        }.getOrNull()
     }
 }

@@ -44,6 +44,9 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
     val currentRoute = navBackStackEntry?.destination?.route
     var triggerSearchOnMain by remember { mutableStateOf(false) }
     var menuSearchText by remember { mutableStateOf("") }
+
+    val navNewChat = stringResource(R.string.nav_new_chat)
+
     val onSearchTrigger = {
         if (currentRoute != Screen.ChatList.route) {
             mainNavController.navigate(Screen.ChatList.route) {
@@ -74,7 +77,7 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clickable { onSearchTrigger() }, // Клик по всей области поля
+                        .clickable { onSearchTrigger() },
                     placeholder = { Text(stringResource(R.string.menu_search_hint)) },
                     leadingIcon = {
                         IconButton(onClick = { onSearchTrigger() }) {
@@ -84,7 +87,7 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     trailingIcon = {
                         IconButton(onClick = {
                             scope.launch { drawerState.close() }
-                            mainNavController.navigate(Screen.Chat.createRoute("new")) {
+                            mainNavController.navigate(Screen.createChatRoute(navNewChat).route) {
                                 popUpTo(Screen.ChatList.route) { inclusive = false }
                                 launchSingleTop = true
                             }
@@ -112,7 +115,7 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        mainNavController.navigate(Screen.Chat.createRoute("new")) {
+                        mainNavController.navigate(Screen.createChatRoute(navNewChat).route) {
                             popUpTo(Screen.ChatList.route) { inclusive = false }
                             launchSingleTop = true
                         }
@@ -183,16 +186,16 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
             composable(Screen.ChatList.route) {
                 ChatListScreen(
                     onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onNavigateToChat = { chatId -> mainNavController.navigate(Screen.Chat.createRoute(chatId)) },
+                    onNavigateToChat = { chatId -> mainNavController.navigate(Screen.createChatRoute(chatId).route) },
                     isSearchActiveFromExternal = triggerSearchOnMain,
                     onExternalSearchConsumed = { triggerSearchOnMain = false }
                 )
             }
             composable(
                 route = Screen.Chat.route,
-                arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+                arguments = listOf(navArgument(Screen.ARG_CHAT_ID) { type = NavType.StringType })
             ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+                val chatId = backStackEntry.arguments?.getString(Screen.ARG_CHAT_ID) ?: ""
                 key(chatId) {
                     ChatScreen(
                         chatId = chatId,

@@ -1,13 +1,19 @@
 package com.rozetka.gigaavito.screens.navigation
 
-sealed class Screen(val route: String) {
-    object Login : Screen("login")
-    object Register : Screen("register")
-    object MainFlow : Screen("main_flow")
-    object ChatList : Screen("chat_list")
-    object Chat : Screen("chat/{chatId}") {
-        fun createRoute(chatId: String) = "chat/$chatId"
+
+@JvmInline
+value class Screen(val route: String) {
+    companion object {
+        val Login = Screen("login")
+        val Register = Screen("register")
+        val MainFlow = Screen("main_flow")
+        val ChatList = Screen("chat_list")
+        val Chat = Screen("chat/{chatId}")
+        val Profile = Screen("profile")
+        val Images = Screen("images")
+
+        const val ARG_CHAT_ID = "chatId"
+
+        fun createChatRoute(chatId: String) = Screen("chat/$chatId")
     }
-    object Profile : Screen("profile")
-    object Images : Screen("images")
 }

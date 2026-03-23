@@ -26,7 +26,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import java.io.File
+import com.rozetka.gigaavito.utils.getGigaImageFile
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -39,7 +39,7 @@ fun ImageCard(
 ) {
     var isLoaded by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val localFile = remember(imageUrl) { File(context.filesDir, "giga_$imageUrl.jpg") }
+    val localFile = remember(imageUrl) { getGigaImageFile(context, imageUrl) }
 
     with(sharedTransitionScope) {
         Surface(

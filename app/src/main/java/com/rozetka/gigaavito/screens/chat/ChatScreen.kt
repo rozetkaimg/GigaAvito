@@ -36,6 +36,8 @@ import com.rozetka.gigaavito.screens.chat.components.ChatBubble
 import com.rozetka.gigaavito.screens.chat.components.ChatInputBar
 import com.rozetka.gigaavito.screens.chat.components.ChatSettingsBottomSheet
 import com.rozetka.gigaavito.utils.MediaViewer
+import com.rozetka.gigaavito.utils.extractGigaImageId
+import com.rozetka.gigaavito.utils.removeGigaImageTags
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -90,6 +92,10 @@ fun ChatScreen(
 
     if (showRenameDialog) {
         var newTitle by remember { mutableStateOf(chatInfo?.title ?: "") }
+        val onRenameConfirm = {
+            if (newTitle.isNotBlank()) viewModel.renameChat(newTitle)
+            showRenameDialog = false
+        }
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
             title = { Text(stringResource(R.string.dialog_rename_title)) },
@@ -102,12 +108,7 @@ fun ChatScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (newTitle.isNotBlank()) {
-                        viewModel.renameChat(newTitle)
-                    }
-                    showRenameDialog = false
-                }) { Text(stringResource(R.string.btn_save)) }
+                TextButton(onClick = onRenameConfirm) { Text(stringResource(R.string.btn_save)) }
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(R.string.action_cancel)) }
@@ -217,11 +218,9 @@ fun ChatScreen(
                                 onValueChange = { messageText = it },
                                 onAttachClick = { photoPickerLauncher.launch("image/*") },
                                 onSend = {
-                                    if (!isGenerating) {
+                                    if (!isGenerating && (messageText.isNotBlank() || uiState.attachedImageUri != null)) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        val uri = uiState.attachedImageUri
-                                        val bytes = uri?.let { context.contentResolver.openInputStream(it)?.readBytes() }
-                                        viewModel.sendMessage(messageText, bytes)
+                                        viewModel.sendMessageWithContext(messageText, uiState.attachedImageUri, context)
                                         messageText = ""
                                     }
                                 },
@@ -259,10 +258,8 @@ fun ChatScreen(
                             }
 
                             items(messages, key = { it.id }) { message ->
-                                val imgRegex = "<img src=\"([^\"]+)\"[^>]*>".toRegex()
-                                val matchResult = imgRegex.find(message.text)
-                                val fileId = matchResult?.groups?.get(1)?.value
-                                val cleanText = message.text.replace(imgRegex, "").trim()
+                                val fileId = message.text.extractGigaImageId()
+                                val cleanText = message.text.removeGigaImageTags()
 
                                 ChatBubble(
                                     text = cleanText,

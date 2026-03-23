@@ -6,6 +6,7 @@ import com.rozetka.gigaavito.data.local.ImageEntity
 import com.rozetka.gigaavito.data.local.MessageEntity
 import com.rozetka.gigaavito.data.remote.GigaChatRepository
 import com.rozetka.gigaavito.data.model.*
+import com.rozetka.gigaavito.utils.extractGigaImageId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.UUID
@@ -17,13 +18,11 @@ class ChatGenerationManager(
     private val imageDao: ImageDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     private val activeGenerations = ConcurrentHashMap<String, MutableStateFlow<String?>>()
     private val activeJobs = ConcurrentHashMap<String, Job>()
-
     private val _typingChats = MutableStateFlow<Set<String>>(emptySet())
-    val typingChats: StateFlow<Set<String>> = _typingChats.asStateFlow()
 
+    val typingChats: StateFlow<Set<String>> = _typingChats.asStateFlow()
     val isAnyChatGenerating: StateFlow<Boolean> = _typingChats
         .map { it.isNotEmpty() }
         .stateIn(scope, SharingStarted.Eagerly, false)
@@ -32,9 +31,7 @@ class ChatGenerationManager(
         return activeGenerations.getOrPut(chatId) { MutableStateFlow(null) }.asStateFlow()
     }
 
-    fun isGenerating(chatId: String): Boolean {
-        return activeJobs.containsKey(chatId)
-    }
+    fun isGenerating(chatId: String): Boolean = activeJobs.containsKey(chatId)
 
     fun startGeneration(
         chatId: String,
@@ -48,21 +45,17 @@ class ChatGenerationManager(
 
         val generatingState = activeGenerations.getOrPut(chatId) { MutableStateFlow("") }
         generatingState.value = ""
-
         _typingChats.update { it + chatId }
 
         val job = scope.launch {
-            try {
+            runCatching {
                 withTimeoutOrNull(120_000L) {
                     val history = chatDao.getMessages(chatId).first()
-                        .take(20).reversed().map {
-                            GigaChatRequest.Message(role = if (it.isUser) "user" else "assistant", content = it.text)
-                        }.toMutableList()
+                        .toGigaHistory()
+                        .toMutableList()
 
-                    var attachmentIds: List<String>? = null
-                    if (imageBytes != null) {
-                        val uploadedId = gigaChatRepository.uploadFile(imageBytes, "img.jpg")
-                        if (uploadedId != null) attachmentIds = listOf(uploadedId)
+                    val attachmentIds = imageBytes?.let {
+                        gigaChatRepository.uploadFile(it, "img.jpg")?.let { id -> listOf(id) }
                     }
 
                     history.add(GigaChatRequest.Message(
@@ -83,29 +76,21 @@ class ChatGenerationManager(
                         chatDao.upsertMessage(
                             MessageEntity(UUID.randomUUID().toString(), chatId, fullResponse, false, System.currentTimeMillis())
                         )
-
-                        val imgRegex = "<img src=\"([^\"]+)\"".toRegex()
-                        imgRegex.find(fullResponse)?.groups?.get(1)?.value?.let { fileId ->
-                            imageDao.insertImage(
-                                ImageEntity(id = fileId, url = fileId, timestamp = System.currentTimeMillis(), senderId = "ai")
-                            )
+                        fullResponse.extractGigaImageId()?.let { fileId ->
+                            imageDao.insertImage(ImageEntity(fileId, fileId, System.currentTimeMillis(), "ai"))
                         }
                     }
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (activeJobs.containsKey(chatId)) {
-                    onError(text)
-                }
-            } finally {
-                generatingState.value = null
-                activeJobs.remove(chatId)
-                _typingChats.update { it - chatId }
-                withContext(Dispatchers.Main) { onComplete() }
+            }.onFailure { e ->
+                if (e is CancellationException) throw e
+                if (activeJobs.containsKey(chatId)) onError(text)
             }
-        }
 
+            generatingState.value = null
+            activeJobs.remove(chatId)
+            _typingChats.update { it - chatId }
+            withContext(Dispatchers.Main) { onComplete() }
+        }
         activeJobs[chatId] = job
     }
 
@@ -115,4 +100,15 @@ class ChatGenerationManager(
         activeGenerations[chatId]?.value = null
         _typingChats.update { it - chatId }
     }
+}
+
+private fun MessageEntity.toGigaMessage(): GigaChatRequest.Message {
+    return GigaChatRequest.Message(
+        role = if (isUser) "user" else "assistant",
+        content = text
+    )
+}
+
+private fun List<MessageEntity>.toGigaHistory(limit: Int = 20): List<GigaChatRequest.Message> {
+    return take(limit).reversed().map { it.toGigaMessage() }
 }
