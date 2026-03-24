@@ -20,12 +20,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavType
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.rozetka.gigaavito.R
 import com.rozetka.gigaavito.screens.chat.ChatScreen
 import com.rozetka.gigaavito.screens.chatlist.ChatListScreen
@@ -41,16 +41,16 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     val mainNavController = rememberNavController()
     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
     var triggerSearchOnMain by remember { mutableStateOf(false) }
     var menuSearchText by remember { mutableStateOf("") }
 
     val navNewChat = stringResource(R.string.nav_new_chat)
 
     val onSearchTrigger = {
-        if (currentRoute != Screen.ChatList.route) {
-            mainNavController.navigate(Screen.ChatList.route) {
-                popUpTo(Screen.ChatList.route) { inclusive = true }
+        if (currentDestination?.hasRoute<Screen.ChatList>() == false) {
+            mainNavController.navigate(Screen.ChatList) {
+                popUpTo<Screen.ChatList> { inclusive = true }
             }
         }
         scope.launch {
@@ -87,8 +87,8 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     trailingIcon = {
                         IconButton(onClick = {
                             scope.launch { drawerState.close() }
-                            mainNavController.navigate(Screen.createChatRoute(navNewChat).route) {
-                                popUpTo(Screen.ChatList.route) { inclusive = false }
+                            mainNavController.navigate(Screen.Chat(navNewChat)) {
+                                popUpTo<Screen.ChatList> { inclusive = false }
                                 launchSingleTop = true
                             }
                         }) {
@@ -115,8 +115,8 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        mainNavController.navigate(Screen.createChatRoute(navNewChat).route) {
-                            popUpTo(Screen.ChatList.route) { inclusive = false }
+                        mainNavController.navigate(Screen.Chat(navNewChat)) {
+                            popUpTo<Screen.ChatList> { inclusive = false }
                             launchSingleTop = true
                         }
                     },
@@ -125,11 +125,11 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
 
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_images), fontWeight = FontWeight.Bold) },
-                    icon = { Icon(if (currentRoute == Screen.Images.route) Icons.Filled.Image else Icons.Outlined.Image, null) },
-                    selected = currentRoute == Screen.Images.route,
+                    icon = { Icon(if (currentDestination?.hasRoute<Screen.Images>() == true) Icons.Filled.Image else Icons.Outlined.Image, null) },
+                    selected = currentDestination?.hasRoute<Screen.Images>() == true,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        mainNavController.navigate(Screen.Images.route) {
+                        mainNavController.navigate(Screen.Images) {
                             launchSingleTop = true
                         }
                     },
@@ -140,12 +140,12 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
 
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_home), fontWeight = FontWeight.Bold) },
-                    icon = { Icon(if (currentRoute == Screen.ChatList.route) Icons.Filled.ChatBubble else Icons.Outlined.ChatBubbleOutline, null) },
-                    selected = currentRoute == Screen.ChatList.route,
+                    icon = { Icon(if (currentDestination?.hasRoute<Screen.ChatList>() == true) Icons.Filled.ChatBubble else Icons.Outlined.ChatBubbleOutline, null) },
+                    selected = currentDestination?.hasRoute<Screen.ChatList>() == true,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        mainNavController.navigate(Screen.ChatList.route) {
-                            popUpTo(Screen.ChatList.route) { inclusive = true }
+                        mainNavController.navigate(Screen.ChatList) {
+                            popUpTo<Screen.ChatList> { inclusive = true }
                             launchSingleTop = true
                         }
                     },
@@ -154,11 +154,11 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
 
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_profile), fontWeight = FontWeight.Bold) },
-                    icon = { Icon(if (currentRoute == Screen.Profile.route) Icons.Filled.Person else Icons.Outlined.PersonOutline, null) },
-                    selected = currentRoute == Screen.Profile.route,
+                    icon = { Icon(if (currentDestination?.hasRoute<Screen.Profile>() == true) Icons.Filled.Person else Icons.Outlined.PersonOutline, null) },
+                    selected = currentDestination?.hasRoute<Screen.Profile>() == true,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        mainNavController.navigate(Screen.Profile.route) {
+                        mainNavController.navigate(Screen.Profile) {
                             launchSingleTop = true
                         }
                     },
@@ -182,20 +182,17 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
             }
         }
     ) {
-        NavHost(navController = mainNavController, startDestination = Screen.ChatList.route) {
-            composable(Screen.ChatList.route) {
+        NavHost(navController = mainNavController, startDestination = Screen.ChatList) {
+            composable<Screen.ChatList> {
                 ChatListScreen(
                     onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onNavigateToChat = { chatId -> mainNavController.navigate(Screen.createChatRoute(chatId).route) },
+                    onNavigateToChat = { chatId -> mainNavController.navigate(Screen.Chat(chatId)) },
                     isSearchActiveFromExternal = triggerSearchOnMain,
                     onExternalSearchConsumed = { triggerSearchOnMain = false }
                 )
             }
-            composable(
-                route = Screen.Chat.route,
-                arguments = listOf(navArgument(Screen.ARG_CHAT_ID) { type = NavType.StringType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getString(Screen.ARG_CHAT_ID) ?: ""
+            composable<Screen.Chat> { backStackEntry ->
+                val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
                 key(chatId) {
                     ChatScreen(
                         chatId = chatId,
@@ -203,10 +200,10 @@ fun MainDrawerScaffold(onLogout: () -> Unit) {
                     )
                 }
             }
-            composable(Screen.Profile.route) {
+            composable<Screen.Profile> {
                 ProfileScreen(onOpenDrawer = { scope.launch { drawerState.open() } }, onLogout = onLogout)
             }
-            composable(Screen.Images.route) {
+            composable<Screen.Images> {
                 ImagesScreen(
                     onMenuClick = { scope.launch { drawerState.open() } }
                 )

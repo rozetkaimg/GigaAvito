@@ -53,11 +53,7 @@ fun ChatScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
 
-    val messages by viewModel.messages.collectAsState(initial = emptyList())
-    val chatInfo by viewModel.chatInfo.collectAsState(initial = null)
-    val uiState by viewModel.uiState.collectAsState()
-    val generatingMsg by viewModel.generatingMessage.collectAsState()
-    val isGenerating by viewModel.isGenerating.collectAsState()
+    val state by viewModel.viewState.collectAsState()
 
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -84,14 +80,14 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(messages.size, generatingMsg) {
-        if (messages.isNotEmpty() || generatingMsg != null) {
+    LaunchedEffect(state.messages.size, state.generatingMessage) {
+        if (state.messages.isNotEmpty() || state.generatingMessage != null) {
             listState.animateScrollToItem(0)
         }
     }
 
     if (showRenameDialog) {
-        var newTitle by remember { mutableStateOf(chatInfo?.title ?: "") }
+        var newTitle by remember { mutableStateOf(state.chatInfo?.title ?: "") }
         val onRenameConfirm = {
             if (newTitle.isNotBlank()) viewModel.renameChat(newTitle)
             showRenameDialog = false
@@ -118,8 +114,8 @@ fun ChatScreen(
 
     if (showBottomSheet) {
         ChatSettingsBottomSheet(
-            selectedModel = uiState.selectedModel,
-            models = uiState.models,
+            selectedModel = state.selectedModel,
+            models = state.models,
             onDismiss = { showBottomSheet = false },
             onRenameClick = {
                 showBottomSheet = false
@@ -159,7 +155,7 @@ fun ChatScreen(
                         CenterAlignedTopAppBar(
                             scrollBehavior = scrollBehavior,
                             title = {
-                                Text(chatInfo?.title ?: stringResource(R.string.chat_default_title), style = MaterialTheme.typography.titleMedium)
+                                Text(state.chatInfo?.title ?: stringResource(R.string.chat_default_title), style = MaterialTheme.typography.titleMedium)
                             },
                             navigationIcon = {
                                 IconButton(onClick = onNavigateBack) {
@@ -184,11 +180,11 @@ fun ChatScreen(
                                 .imePadding()
                                 .padding(bottom = 8.dp)
                         ) {
-                            if (uiState.attachedImageUri != null) {
+                            if (state.attachedImageUri != null) {
                                 Box(modifier = Modifier.padding(start = 16.dp, bottom = 8.dp, top = 8.dp)) {
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
-                                            .data(uiState.attachedImageUri)
+                                            .data(state.attachedImageUri)
                                             .crossfade(true)
                                             .build(),
                                         contentDescription = null,
@@ -218,14 +214,14 @@ fun ChatScreen(
                                 onValueChange = { messageText = it },
                                 onAttachClick = { photoPickerLauncher.launch("image/*") },
                                 onSend = {
-                                    if (!isGenerating && (messageText.isNotBlank() || uiState.attachedImageUri != null)) {
+                                    if (!state.isGenerating && (messageText.isNotBlank() || state.attachedImageUri != null)) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.sendMessageWithContext(messageText, uiState.attachedImageUri, context)
+                                        viewModel.sendMessageWithContext(messageText, state.attachedImageUri, context)
                                         messageText = ""
                                     }
                                 },
-                                isLoading = isGenerating,
-                                hasAttachment = uiState.attachedImageUri != null
+                                isLoading = state.isGenerating,
+                                hasAttachment = state.attachedImageUri != null
                             )
                         }
                     }
@@ -243,10 +239,10 @@ fun ChatScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             reverseLayout = true
                         ) {
-                            if (generatingMsg != null) {
+                            if (state.generatingMessage != null) {
                                 item {
                                     ChatBubble(
-                                        text = generatingMsg ?: "",
+                                        text = state.generatingMessage ?: "",
                                         isUser = false,
                                         timestamp = System.currentTimeMillis(),
                                         isGenerating = true,
@@ -257,7 +253,7 @@ fun ChatScreen(
                                 }
                             }
 
-                            items(messages, key = { it.id }) { message ->
+                            items(state.messages, key = { it.id }) { message ->
                                 val fileId = message.text.extractGigaImageId()
                                 val cleanText = message.text.removeGigaImageTags()
 

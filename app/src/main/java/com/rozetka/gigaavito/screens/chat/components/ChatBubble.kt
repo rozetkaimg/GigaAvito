@@ -1,5 +1,6 @@
 package com.rozetka.gigaavito.screens.chat.components
 
+import android.content.ClipData
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -20,11 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -34,6 +35,7 @@ import coil3.request.crossfade
 import com.rozetka.gigaavito.R
 import com.rozetka.gigaavito.screens.chat.ChatViewModel
 import com.rozetka.gigaavito.utils.shareMedia
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,7 +55,8 @@ fun ChatBubble(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalClipboard.current
+    val scope = rememberCoroutineScope()
 
     var showMenu by remember { mutableStateOf(false) }
     var imageBytes by remember(fileId) { mutableStateOf<ByteArray?>(null) }
@@ -83,8 +86,11 @@ fun ChatBubble(
             isImage = imageBytes != null,
             onDismiss = { showMenu = false },
             onCopy = {
-                clipboardManager.setText(AnnotatedString(displayText))
-                showMenu = false
+                scope.launch {
+                    val clipData = ClipData.newPlainText("Copied Text", displayText)
+                    clipboardManager.setClipEntry(clipData.toClipEntry())
+                    showMenu = false
+                }
             },
             onShare = {
                 context.shareMedia(displayText, imageBytes)

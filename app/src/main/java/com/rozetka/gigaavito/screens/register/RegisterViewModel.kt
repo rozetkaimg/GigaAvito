@@ -3,6 +3,7 @@ package com.rozetka.gigaavito.screens.register
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.rozetka.gigaavito.R
+import com.rozetka.gigaavito.domain.ValidationUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,24 +25,32 @@ class RegisterViewModel(private val auth: FirebaseAuth) : ViewModel() {
     val confirmPassword = MutableStateFlow("")
 
     fun register() {
-        if (email.value.isBlank() || password.value.isBlank() || confirmPassword.value.isBlank()) {
-            _state.value = _state.value.copy(errorResId = R.string.error_fill_fields)
-            return
-        }
+        val emailValue = email.value.trim()
+        val passwordValue = password.value
+        val confirmValue = confirmPassword.value
 
-        if (password.value != confirmPassword.value) {
-            _state.value = _state.value.copy(errorResId = R.string.error_pass_mismatch)
-            return
-        }
-
-        if (password.value.length < 6) {
-            _state.value = _state.value.copy(errorResId = R.string.error_pass_short)
-            return
+        when {
+            emailValue.isBlank() || passwordValue.isBlank() || confirmValue.isBlank() -> {
+                _state.value = _state.value.copy(errorResId = R.string.error_fill_fields)
+                return
+            }
+            !ValidationUtils.isValidEmail(emailValue) -> {
+                _state.value = _state.value.copy(rawErrorMessage = "Invalid email format")
+                return
+            }
+            !ValidationUtils.isValidPassword(passwordValue) -> {
+                _state.value = _state.value.copy(errorResId = R.string.error_pass_short)
+                return
+            }
+            !ValidationUtils.arePasswordsMatching(passwordValue, confirmValue) -> {
+                _state.value = _state.value.copy(errorResId = R.string.error_pass_mismatch)
+                return
+            }
         }
 
         _state.value = _state.value.copy(isLoading = true, errorResId = null, rawErrorMessage = null)
 
-        auth.createUserWithEmailAndPassword(email.value.trim(), password.value)
+        auth.createUserWithEmailAndPassword(emailValue, passwordValue)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)

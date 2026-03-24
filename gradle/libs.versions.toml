@@ -1,6 +1,7 @@
 [versions]
 agp = "9.1.0"
 coil = "3.4.0"
+composeMarkdown = "0.5.6"
 coreKtx = "1.18.0"
 credentials = "1.5.0"
 credentialsPlayServicesAuth = "1.5.0"
@@ -35,6 +36,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomVersion" }
 androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "roomVersion" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }
+compose-markdown = { module = "com.github.jeziellago:compose-markdown", version.ref = "composeMarkdown" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }

@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val startDestination = if (auth.currentUser != null) Screen.MainFlow.route else Screen.Login.route
+        val startDestination: Screen = if (auth.currentUser != null) Screen.MainFlow else Screen.Login
 
         setContent {
             val isDarkTheme by themeViewModel.isDarkTheme.collectAsState()

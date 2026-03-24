@@ -14,7 +14,7 @@ import com.rozetka.gigaavito.screens.main.MainDrawerScaffold
 
 @Composable
 fun AppNavigation(
-    startDestination: String,
+    startDestination: Any,
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -37,33 +37,33 @@ fun AppNavigation(
             slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(animDuration))
         }
     ) {
-        composable(Screen.Login.route) {
+        composable<Screen.Login> {
             LoginScreen(
                 onNavigateToHome = {
-                    navController.navigate(Screen.MainFlow.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    navController.navigate(Screen.MainFlow) {
+                        popUpTo(Screen.Login) { inclusive = true }
                     }
                 },
-                onNavigateToRegister = { navController.navigate(Screen.Register.route) }
+                onNavigateToRegister = { navController.navigate(Screen.Register) }
             )
         }
 
-        composable(Screen.Register.route) {
+        composable<Screen.Register> {
             RegisterScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToHome = {
-                    navController.navigate(Screen.MainFlow.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                    navController.navigate(Screen.MainFlow) {
+                        popUpTo(Screen.Login) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(Screen.MainFlow.route) {
+        composable<Screen.MainFlow> {
             MainDrawerScaffold(
                 onLogout = {
                     onLogout()
-                    navController.navigate(Screen.Login.route) {
+                    navController.navigate(Screen.Login) {
                         popUpTo(0) { inclusive = true }
                     }
                 }

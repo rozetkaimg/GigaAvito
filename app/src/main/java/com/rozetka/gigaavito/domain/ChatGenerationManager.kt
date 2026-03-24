@@ -48,14 +48,17 @@ class ChatGenerationManager(
         _typingChats.update { it + chatId }
 
         val job = scope.launch {
-            runCatching {
-                withTimeoutOrNull(120_000L) {
+            try {
+                withTimeout(120_000L) {
                     val history = chatDao.getMessages(chatId).first()
                         .toGigaHistory()
                         .toMutableList()
 
                     val attachmentIds = imageBytes?.let {
-                        gigaChatRepository.uploadFile(it, "img.jpg")?.let { id -> listOf(id) }
+                        when (val result = gigaChatRepository.uploadFile(it, "img.jpg")) {
+                            is NetworkResult.Success -> listOf(result.data)
+                            else -> null
+                        }
                     }
 
                     history.add(GigaChatRequest.Message(
@@ -67,9 +70,15 @@ class ChatGenerationManager(
                     var fullResponse = ""
                     gigaChatRepository.generateResponseStream(history, model)
                         .cancellable()
-                        .collect { chunk ->
-                            fullResponse += chunk
-                            generatingState.value = fullResponse
+                        .collect { result ->
+                            when (result) {
+                                is NetworkResult.Success -> {
+                                    fullResponse += result.data
+                                    generatingState.value = fullResponse
+                                }
+                                is NetworkResult.Error -> throw Exception(result.message)
+                                else -> {}
+                            }
                         }
 
                     if (fullResponse.isNotBlank()) {
@@ -81,15 +90,16 @@ class ChatGenerationManager(
                         }
                     }
                 }
-            }.onFailure { e ->
-                if (e is CancellationException) throw e
-                if (activeJobs.containsKey(chatId)) onError(text)
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    onError(e.message ?: "Unknown error")
+                }
+            } finally {
+                generatingState.value = null
+                activeJobs.remove(chatId)
+                _typingChats.update { it - chatId }
+                withContext(Dispatchers.Main) { onComplete() }
             }
-
-            generatingState.value = null
-            activeJobs.remove(chatId)
-            _typingChats.update { it - chatId }
-            withContext(Dispatchers.Main) { onComplete() }
         }
         activeJobs[chatId] = job
     }

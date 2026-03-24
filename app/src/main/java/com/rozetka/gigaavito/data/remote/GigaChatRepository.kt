@@ -17,6 +17,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.serialization.json.Json
@@ -49,19 +50,19 @@ class GigaChatRepository(private val client: HttpClient) {
         return response.access_token
     }
 
-    suspend fun getModels(): List<String> {
+    suspend fun getModels(): NetworkResult<List<String>> {
         return try {
             val validToken = getAccessToken()
             val response: GigaChatModelsResponse = client.get("${baseUrl}models") {
                 header(HttpHeaders.Authorization, "Bearer $validToken")
             }.body()
-            response.data.map { it.id }
+            NetworkResult.Success(response.data.map { it.id })
         } catch (e: Exception) {
-            listOf("GigaChat")
+            NetworkResult.Error("Failed to fetch models", e)
         }
     }
 
-    suspend fun uploadFile(fileBytes: ByteArray, fileName: String): String? {
+    suspend fun uploadFile(fileBytes: ByteArray, fileName: String): NetworkResult<String> {
         return try {
             val validToken = getAccessToken()
             val response: GigaChatFileUploadResponse = client.post("${baseUrl}files") {
@@ -77,16 +78,17 @@ class GigaChatRepository(private val client: HttpClient) {
                     )
                 )
             }.body()
-            response.id
+            NetworkResult.Success(response.id)
         } catch (e: Exception) {
-            null
+            NetworkResult.Error("File upload failed", e)
         }
     }
 
     fun generateResponseStream(
         messages: List<GigaChatRequest.Message>,
         model: String
-    ): Flow<String> = flow {
+    ): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading)
         val validToken = getAccessToken()
 
         client.sse(
@@ -104,27 +106,31 @@ class GigaChatRepository(private val client: HttpClient) {
             }
         ) {
             incoming.takeWhile { it.data != "[DONE]" }.collect { event ->
-                val data = event.data
-                if (data != null) {
+                event.data?.let { data ->
                     try {
                         val response = jsonParser.decodeFromString<GigaChatStreamResponse>(data)
-                        response.choices.firstOrNull()?.delta?.content?.let { emit(it) }
+                        response.choices.firstOrNull()?.delta?.content?.let {
+                            emit(NetworkResult.Success(it))
+                        }
                     } catch (e: Exception) {
                     }
                 }
             }
         }
+    }.catch { e ->
+        emit(NetworkResult.Error("Stream error", e))
     }
 
-    suspend fun downloadImage(fileId: String): ByteArray? {
+    suspend fun downloadImage(fileId: String): NetworkResult<ByteArray> {
         return try {
             val validToken = getAccessToken()
-            client.get("${baseUrl}files/$fileId/content") {
+            val bytes = client.get("${baseUrl}files/$fileId/content") {
                 header(HttpHeaders.Authorization, "Bearer $validToken")
                 header(HttpHeaders.Accept, "application/jpg")
             }.body<ByteArray>()
+            NetworkResult.Success(bytes)
         } catch (e: Exception) {
-            null
+            NetworkResult.Error("Image download failed", e)
         }
     }
 }

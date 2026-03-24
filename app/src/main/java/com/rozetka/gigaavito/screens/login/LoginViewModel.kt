@@ -12,6 +12,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.rozetka.gigaavito.domain.ValidationUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,12 +32,20 @@ class LoginViewModel(private val auth: FirebaseAuth) : ViewModel() {
     val password = MutableStateFlow("")
 
     fun login() {
-        if (email.value.isBlank() || password.value.isBlank()) {
-            _state.value = _state.value.copy(errorMessage = "Empty fields")
+        val emailValue = email.value.trim()
+        val passwordValue = password.value
+
+        if (!ValidationUtils.isValidEmail(emailValue)) {
+            _state.value = _state.value.copy(errorMessage = "Invalid email format")
             return
         }
+        if (passwordValue.isBlank()) {
+            _state.value = _state.value.copy(errorMessage = "Password cannot be empty")
+            return
+        }
+
         _state.value = _state.value.copy(isLoading = true, errorMessage = null)
-        auth.signInWithEmailAndPassword(email.value.trim(), password.value)
+        auth.signInWithEmailAndPassword(emailValue, passwordValue)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)

@@ -1,19 +1,26 @@
 package com.rozetka.gigaavito.screens.navigation
 
+import kotlinx.serialization.Serializable
 
-@JvmInline
-value class Screen(val route: String) {
-    companion object {
-        val Login = Screen("login")
-        val Register = Screen("register")
-        val MainFlow = Screen("main_flow")
-        val ChatList = Screen("chat_list")
-        val Chat = Screen("chat/{chatId}")
-        val Profile = Screen("profile")
-        val Images = Screen("images")
+sealed interface Screen {
+    @Serializable
+    data object Login : Screen
 
-        const val ARG_CHAT_ID = "chatId"
+    @Serializable
+    data object Register : Screen
 
-        fun createChatRoute(chatId: String) = Screen("chat/$chatId")
-    }
+    @Serializable
+    data object MainFlow : Screen
+
+    @Serializable
+    data object ChatList : Screen
+
+    @Serializable
+    data class Chat(val chatId: String) : Screen
+
+    @Serializable
+    data object Profile : Screen
+
+    @Serializable
+    data object Images : Screen
 }
